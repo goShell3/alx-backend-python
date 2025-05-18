@@ -60,5 +60,4 @@ if __name__ == "__main__":
         for user in users_over_25:
             print(f"ID: {user['user_id']}, Name: {user['name']}, Age: {user['age']}")
             
-            
-yield 
+        return user
