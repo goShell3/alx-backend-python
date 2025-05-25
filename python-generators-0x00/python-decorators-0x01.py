@@ -6,10 +6,9 @@ import functools
 def log_queries(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # Log the query before execution
+        # Try to get the query from kwargs or args
         query = kwargs.get('query', args[0] if args else None)
         print(f"Executing SQL query: {query}")
-        # Execute the original function
         return func(*args, **kwargs)
     return wrapper
 
