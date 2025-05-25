@@ -24,3 +24,9 @@ def fetch_all_users(query):
 #### fetch users while logging the query
 users = fetch_all_users(query="SELECT * FROM users")
 
+with DatabaseConnection('users.db') as conn:
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users")
+    results = cursor.fetchall()
+    print("Query results:", results)
+
