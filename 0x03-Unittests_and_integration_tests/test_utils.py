@@ -69,7 +69,7 @@ class TestGetJson(unittest.TestCase):
     """Test cases for the get_json function.
     
     This class contains test cases for making HTTP requests and
-    handling JSON responses.
+    handling JSON responses using mocked requests.
     """
 
     @parameterized.expand([
@@ -80,7 +80,8 @@ class TestGetJson(unittest.TestCase):
         """Test successful JSON retrieval from URLs.
         
         This test verifies that the get_json function correctly
-        retrieves and parses JSON from remote URLs.
+        retrieves and parses JSON from remote URLs using mocked
+        HTTP requests.
 
         Parameters
         ----------
@@ -89,12 +90,11 @@ class TestGetJson(unittest.TestCase):
         test_payload: dict
             The expected JSON response
         """
-        config = {'return_value.json.return_value': test_payload}
-        patcher = patch('requests.get', **config)
-        mock = patcher.start()
-        self.assertEqual(get_json(test_url), test_payload)
-        mock.assert_called_once()
-        patcher.stop()
+        with patch('requests.get') as mock_get:
+            mock_get.return_value.json.return_value = test_payload
+            result = get_json(test_url)
+            mock_get.assert_called_once_with(test_url)
+            self.assertEqual(result, test_payload)
 
 
 class TestMemoize(unittest.TestCase):
