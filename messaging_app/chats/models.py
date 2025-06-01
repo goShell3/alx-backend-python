@@ -1,18 +1,32 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils.translation import gettext_lazy as _
+import uuid
 
 class User(AbstractUser):
-    """Custom user model extending Django's AbstractUser.
+    """Custom user model extending Django's AbstractUser."""
+
+    user_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        primary_key=True
+    )
+
+    email = models.EmailField(
+        unique=True,
+        null=False,
+        blank=False,
+        help_text=_('User email address')
+    )
+
+    password = models.CharField(
+        max_length=128,
+        null=False,
+        blank=False,
+        help_text=_('User password')
+    )
     
-    Additional fields:
-    - profile_picture: User's profile image
-    - bio: Short user biography
-    - phone_number: Contact number
-    - is_online: User's online status
-    - last_seen: Timestamp of last activity
-    - status: User's current status message
-    """
     profile_picture = models.ImageField(
         upload_to='profile_pictures/',
         null=True,
@@ -51,35 +65,51 @@ class User(AbstractUser):
         return self.username
 
     def get_full_name(self):
-        """Return the user's full name."""
         return f"{self.first_name} {self.last_name}".strip()
 
     def get_short_name(self):
-        """Return the user's short name."""
         return self.first_name
 
-class Chat(models.Model):
-    name = models.CharField(max_length=255)
-    members = models.ManyToManyField(User, related_name='chats')
-
-    def __str__(self):
-        return self.name
-
-class Message(models.Model):
-    content = models.TextField()
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.sender} - {self.conversation}"
 
 class Conversation(models.Model):
-    sender = models.ForeignKey(User, on_delete=models.CASCADE)
-    receiver = models.ForeignKey(User, on_delete=models.CASCADE)
-    messages = models.ManyToManyField(Message, related_name='conversations')
+    """Conversation between two or more users."""
+    conversation_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        primary_key=True
+    )
+
+    participants = models.ManyToManyField(User, related_name='conversations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.sender} - {self.receiver}"
+        participant_usernames = ", ".join([user.username for user in self.participants.all()])
+        return f"Conversation between: {participant_usernames}"
+
+
+class Message(models.Model):
+    """Message sent in a conversation."""
+    message_id = models.UUIDField(
+        default=uuid.uuid4,
+        unique=True,
+        editable=False,
+        primary_key=True
+    )
+
+    conversation = models.ForeignKey(
+        Conversation,
+        related_name='messages',
+        on_delete=models.CASCADE
+    )
+    sender = models.ForeignKey(
+        User,
+        related_name='sent_messages',
+        on_delete=models.CASCADE
+    )
+    message_body = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.sender.username}: {self.message_body[:30]}..."
