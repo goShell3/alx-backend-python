@@ -109,13 +109,10 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.mock_get = cls.get_patcher.start()
 
         def get_response(url, *args, **kwargs):
-            expected_org_url = (
-                f"https://api.github.com/orgs/"
-                f"{cls.org_payload['login']}"
-            )
+            expected_org_url = "https://api.github.com/orgs/google"
             if url == expected_org_url:
-                return MockResponse(cls.org_payload)
-            elif url == cls.org_payload["repos_url"]:
+                return MockResponse({"login": "google", "repos_url": "https://api.github.com/orgs/google/repos"})
+            elif url == "https://api.github.com/orgs/google/repos":
                 return MockResponse(cls.repos_payload)
             return MockResponse(None)
 
