@@ -35,7 +35,6 @@ class TestGithubOrgClient(unittest.TestCase):
             f"https://api.github.com/orgs/{org_name}"
         )
 
-
     def test_public_repos_url(self):
         """Test that _public_repos_url returns expected repos URL"""
         test_url = "https://api.github.com/orgs/testorg/repos"
@@ -46,7 +45,6 @@ class TestGithubOrgClient(unittest.TestCase):
             mock_org.return_value = {"repos_url": test_url}
             client = GithubOrgClient("testorg")
             self.assertEqual(client._public_repos_url, test_url)
-
 
     @patch("client.get_json")
     def test_public_repos(self, mock_get_json):
@@ -75,7 +73,6 @@ class TestGithubOrgClient(unittest.TestCase):
             mock_get_json.assert_called_once_with(
                 "https://fakeurl.com/orgs/testorg/repos"
             )
-
 
     @parameterized.expand([
         ({"license": {"key": "my_license"}}, "my_license", True),
@@ -124,19 +121,16 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
 
         cls.mock_get.side_effect = get_response
 
-
     @classmethod
     def tearDownClass(cls):
         """Stop the patcher after all tests are run."""
         cls.get_patcher.stop()
-
 
     def test_public_repos(self):
         """Test public_repos without license filtering."""
         client = GithubOrgClient(self.org_payload['login'])
         repos = client.public_repos()
         self.assertEqual(repos, self.expected_repos)
-
 
     def test_has_license(self):
         """Test public_repos with Apache 2.0 license filtering."""
