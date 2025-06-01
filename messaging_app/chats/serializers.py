@@ -4,7 +4,7 @@ from .models import User, Conversation, Message
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'profile_picture', 
+        fields = ['id', 'username', 'email', 'password', 
                  'bio', 'phone_number', 'is_online', 'last_seen', 'status']
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -22,6 +22,7 @@ class ConversationSerializer(serializers.ModelSerializer):
 
     def get_participants(self, obj):
         return UserSerializer(obj.participants.all(), many=True).data
+
 
     def get_last_message(self, obj):
         last_message = obj.messages.order_by('-sent_at').first()

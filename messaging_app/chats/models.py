@@ -27,12 +27,12 @@ class User(AbstractUser):
         help_text=_('User password')
     )
     
-    profile_picture = models.ImageField(
-        upload_to='profile_pictures/',
-        null=True,
-        blank=True,
-        help_text=_('User profile picture')
-    )
+    # profile_picture = models.ImageField(
+    #     upload_to='profile_pictures/',
+    #     null=True,
+    #     blank=True,
+    #     help_text=_('User profile picture')
+    # )
     bio = models.TextField(
         max_length=500,
         blank=True,
