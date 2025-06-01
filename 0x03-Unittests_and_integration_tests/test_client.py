@@ -13,7 +13,6 @@ from client import GithubOrgClient
 
 class TestGithubOrgClient(unittest.TestCase):
     """Test cases for the GithubOrgClient class.
-    
     This class contains test cases for the GithubOrgClient methods.
     """
 
@@ -24,10 +23,8 @@ class TestGithubOrgClient(unittest.TestCase):
     @patch('client.get_json')
     def test_org(self, org_name, expected_payload, mock_get_json):
         """Test that GithubOrgClient.org returns the correct value.
-        
         This test verifies that the org method correctly retrieves
         organization data from the GitHub API.
-
         Parameters
         ----------
         org_name: str
@@ -43,7 +40,6 @@ class TestGithubOrgClient(unittest.TestCase):
         mock_get_json.assert_called_once_with(
             f'https://api.github.com/orgs/{org_name}'
         )
-
     @patch.object(GithubOrgClient, 'org', new_callable=Mock)
     def test_public_repos_url(self, mock_org):
         """Test that _public_repos_url returns the correct value from org payload."""
@@ -61,3 +57,10 @@ class TestGithubOrgClient(unittest.TestCase):
         """Test that has_license returns True if repo has the specified license key."""
         client = GithubOrgClient('testorg')
         self.assertEqual(client.has_license(repo, license_key), expected) 
+
+    @parameterized.expand([
+        ({'license': {'key': 'my_license'}}, 'my_license', True),
+        ({'license': {'key': 'other'}}, 'my_license', False),
+    ])
+    def test_has_license(self, repo, license_key, expected):
+        """Test that has_license returns True if repo has the specified license key."""
