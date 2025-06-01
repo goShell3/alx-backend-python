@@ -55,6 +55,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         """Create a new conversation with the current user as a participant."""
         conversation = serializer.save()
         conversation.participants.add(self.request.user)
+        return conversation
 
     @action(detail=True, methods=['post'])
     def add_participant(self, request, pk=None):
@@ -91,7 +92,16 @@ class MessageViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         """Create a new message with the current user as sender."""
-        serializer.save(sender=self.request.user)
+        conversation_id = self.kwargs.get('conversation_pk')
+        if conversation_id:
+            conversation = get_object_or_404(
+                Conversation, 
+                id=conversation_id,
+                participants=self.request.user
+            )
+            serializer.save(sender=self.request.user, conversation=conversation)
+        else:
+            serializer.save(sender=self.request.user)
 
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
