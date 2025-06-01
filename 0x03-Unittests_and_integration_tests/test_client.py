@@ -88,7 +88,8 @@ class MockResponse:
 
 
 @parameterized_class(
-    ("org_payload", "repos_payload", "expected_repos", "apache2_repos"), TEST_PAYLOAD
+    ("org_payload", "repos_payload", 
+    "expected_repos", "apache2_repos"), TEST_PAYLOAD
 )
 class TestIntegrationGithubOrgClient(unittest.TestCase):
     """Integration test class for GithubOrgClient."""
@@ -99,7 +100,8 @@ class TestIntegrationGithubOrgClient(unittest.TestCase):
         cls.get_patcher = patch("requests.get")
         cls.mock_get = cls.get_patcher.start()
 
-        def get_response(url, *args, **kwargs):
+        def get_response(url, *args,
+                                     **kwargs):
             if url == f"https://api.github.com/orgs/{cls.org_payload['login']}":
                 return MockResponse(cls.org_payload)
             elif url == cls.org_payload['repos_url']:
