@@ -39,7 +39,6 @@ class TestAccessNestedMap(unittest.TestCase):
             The expected value at the specified path
         """
         self.assertEqual(access_nested_map(nested_map, path), expected)
-
     @parameterized.expand([
         ({}, ("a",), "'a'"),
         ({"a": 1}, ("a", "b"), "'b'")
