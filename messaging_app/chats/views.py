@@ -75,33 +75,34 @@ class ConversationViewSet(viewsets.ModelViewSet):
 class MessageViewSet(viewsets.ModelViewSet):
     """
     ViewSet for Message model.
-    Provides CRUD operations for messages.
+    Provides CRUD operations for messages within conversations.
     """
-    queryset = Message.objects.all()
     serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
-    filterset_fields = ['conversation', 'sender', 'is_read']
+    filterset_fields = ['sender', 'is_read']
     ordering_fields = ['sent_at']
 
     def get_queryset(self):
-        """Return messages for conversations the user is part of."""
+        """Return messages for the current conversation."""
+        conversation_id = self.kwargs.get('conversation_pk')
         return Message.objects.filter(
+            conversation_id=conversation_id,
             conversation__participants=self.request.user
         ).order_by('-sent_at')
 
     def perform_create(self, serializer):
-        """Create a new message with the current user as sender."""
+        """Create a new message in the current conversation."""
         conversation_id = self.kwargs.get('conversation_pk')
-        if conversation_id:
-            conversation = get_object_or_404(
-                Conversation, 
-                id=conversation_id,
-                participants=self.request.user
-            )
-            serializer.save(sender=self.request.user, conversation=conversation)
-        else:
-            serializer.save(sender=self.request.user)
+        conversation = get_object_or_404(
+            Conversation, 
+            id=conversation_id,
+            participants=self.request.user
+        )
+        serializer.save(
+            sender=self.request.user,
+            conversation=conversation
+        )
 
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
