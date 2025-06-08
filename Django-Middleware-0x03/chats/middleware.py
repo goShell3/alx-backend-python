@@ -1,8 +1,9 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 import os
-from django.http import HttpResponseForbidden
+from django.http import HttpResponseForbidden, JsonResponse
 from pathlib import Path
+from collections import defaultdict
 
 # Get the base directory of the project
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -54,4 +55,50 @@ class RestrictAccessByTimeMiddleware:
                 "Access denied: The messaging service is only available between 6 AM and 9 PM."
             )
         
-        return self.get_response(request) 
+        return self.get_response(request)
+
+class RateLimitMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Dictionary to store request counts for each IP
+        self.request_counts = defaultdict(list)
+        # Maximum number of messages allowed per time window
+        self.max_requests = 5
+        # Time window in seconds (1 minute)
+        self.time_window = 60
+
+    def __call__(self, request):
+        # Only check POST requests to message endpoints
+        if request.method == 'POST' and 'messages' in request.path:
+            ip_address = self.get_client_ip(request)
+            current_time = datetime.now()
+
+            # Clean up old requests outside the time window
+            self.cleanup_old_requests(ip_address, current_time)
+
+            # Check if the IP has exceeded the rate limit
+            if len(self.request_counts[ip_address]) >= self.max_requests:
+                return JsonResponse({
+                    'error': 'Rate limit exceeded',
+                    'message': f'You can only send {self.max_requests} messages per minute. Please wait before sending more messages.'
+                }, status=429)
+
+            # Add the current request to the count
+            self.request_counts[ip_address].append(current_time)
+
+        return self.get_response(request)
+
+    def get_client_ip(self, request):
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+    def cleanup_old_requests(self, ip_address, current_time):
+        # Remove requests older than the time window
+        self.request_counts[ip_address] = [
+            req_time for req_time in self.request_counts[ip_address]
+            if (current_time - req_time).total_seconds() <= self.time_window
+        ] 
