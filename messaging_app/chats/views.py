@@ -139,6 +139,9 @@ class MessageViewSet(viewsets.ModelViewSet):
     ordering_fields = ['sent_at']
     largeresult_pagination = LargeResultsSetPagination
 
+    # custom filter set class 
+    filterset_class = MessageFilter
+
     def get_queryset(self):
         """Return messages for the current conversation."""
         conversation_id = self.kwargs.get('conversation_pk')
