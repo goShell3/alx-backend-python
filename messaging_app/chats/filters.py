@@ -5,6 +5,7 @@ from django_filters import rest_framework as filters
 
 
 class MessageFilter(django_filters.FilterSet):
+    
     sender = filters.ModelChoiceFilter(queryset=User.objects.all())
     conversation = filters.UUIDFilter(field_name='conversation__conversation_id')
     start_date = filters.DateTimeFilter(field_name='sent_at', lookup_expr='gte')
