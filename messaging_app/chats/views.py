@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.views import APIView
 
 # current modules 
 from .models import User, Conversation, Message
@@ -13,6 +14,23 @@ from .permissions import IsParticipantOfConversation
 # fileter and pagination method
 from .filters import MessageFilter
 from .pagination import LargeResultsSetPagination, StandardResultsSetPagination
+
+class RegistrationView(APIView):
+    """
+    View for user registration.
+    Allows unauthenticated users to create new accounts.
+    """
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                'user': UserSerializer(user).data,
+                'message': 'User registered successfully'
+            }, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserViewSet(viewsets.ModelViewSet):
     """
