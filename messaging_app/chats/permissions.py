@@ -17,6 +17,7 @@ class IsParticipantOfConversation(BasePermission):
     def has_permission(self, request, view):
 
         if not request.user.is_authenticated:
+            self.message = "HTTP_403_FORBIDDEN - Authentication required"
             return False 
         
         if view.action in ['list', 'create']:
