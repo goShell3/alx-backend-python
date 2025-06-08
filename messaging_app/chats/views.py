@@ -10,6 +10,10 @@ from .models import User, Conversation, Message
 from .serializers import UserSerializer, ConversationSerializer, MessageSerializer
 from .permissions import IsParticipantOfConversation
 
+# fileter and pagination method
+from .filters import MessageFilter
+from .pagination import LargeResultsSetPagination, StandardResultsSetPagination
+
 class UserViewSet(viewsets.ModelViewSet):
     """
     ViewSet for User model.
@@ -49,6 +53,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['participants']
     ordering_fields = ['created_at', 'updated_at']
+    standard_pagination = StandardResultsSetPagination
 
     def get_queryset(self):
         """Return conversations for the current user."""
@@ -132,6 +137,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['sender', 'is_read']
     ordering_fields = ['sent_at']
+    largeresult_pagination = LargeResultsSetPagination
 
     def get_queryset(self):
         """Return messages for the current conversation."""
