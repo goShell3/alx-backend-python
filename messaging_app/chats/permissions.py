@@ -17,13 +17,13 @@ class IsParticipantOfConversation(BasePermission):
     def has_permission(self, request, view):
 
         if not request.user.is_authenticated:
-            self.message = "HTTP_403_FORBIDDEN - Authentication required"
+            self.message = "HTTP_403_FORBIDDEN"
             return False 
         
         if view.action in ['list', 'create']:
             return True
-        
-        if view.action ['retrieve', 'update', 'partial_update', 'destroy', "PUT", "PATCH", "DELETE"]:
+            
+        if view.action in['retrieve', 'update', 'partial_update', 'destroy']:
             conversation_id = view.kwargs.get('pk')
             try:
                 conversation = Conversation.objects.get(id=conversation_id)
@@ -33,7 +33,7 @@ class IsParticipantOfConversation(BasePermission):
         return False
     
 class UserCanViewMessage(APIView):
-    permission_classes = [IsAuthenticated|UserCanReadonly]
+    permission_classes = [IsAuthenticated | UserCanReadonly]
 
     def get(self, request, format=None):
         content = {

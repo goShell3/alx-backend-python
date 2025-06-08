@@ -65,10 +65,17 @@ class ConversationViewSet(viewsets.ModelViewSet):
         """Add a participant to the conversation."""
         conversation = self.get_object()
         user_id = request.data.get('user_id')
+
         if not user_id:
             return Response(
                 {'error': 'user_id is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        if not request.user in conversation.participants.all():
+            return Response(
+                {"detail": "HTTP_403_FORBIDDEN - You can't add participants to this conversation"},
+                status=status.HTTP_403_FORBIDDEN
             )
         
         user = get_object_or_404(User, id=user_id)
@@ -147,6 +154,8 @@ class MessageViewSet(viewsets.ModelViewSet):
             conversation=conversation
         )
 
+    
+
     @action(detail=True, methods=['post'])
     def mark_as_read(self, request, pk=None):
         """Mark a message as read."""
@@ -157,6 +166,12 @@ class MessageViewSet(viewsets.ModelViewSet):
             {'status': 'message marked as read'},
             status=status.HTTP_200_OK
         )
+    
+        if message.sender == request.user:
+            return Response(
+                {"detail": "HTTP_403_FORBIDDEN - You can't mark your own messages as read"},
+                status=status.HTTP_403_FORBIDDEN
+            )
 
     @action(detail=False, methods=['get'])
     def unread_count(self, request, conversation_pk=None):
