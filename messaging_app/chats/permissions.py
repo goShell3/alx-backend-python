@@ -23,6 +23,9 @@ class IsParticipantOfConversation(BasePermission):
         if view.action in ['list', 'create']:
             return True
             
+        if view.method in ["PUT", "PATCH", "DELETE"]:
+            return True
+        
         if view.action in['retrieve', 'update', 'partial_update', 'destroy']:
             conversation_id = view.kwargs.get('pk')
             try:
