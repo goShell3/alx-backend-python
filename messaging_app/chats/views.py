@@ -45,7 +45,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
     """
     queryset = Conversation.objects.all()
     serializer_class = ConversationSerializer
-    permission_classes = [permissions.IsAuthenticated | IsParticipantOfConversation]
+    permission_classes = [permissions.IsAuthenticated, IsParticipantOfConversation]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['participants']
     ordering_fields = ['created_at', 'updated_at']
@@ -72,8 +72,48 @@ class ConversationViewSet(viewsets.ModelViewSet):
             )
         
         user = get_object_or_404(User, id=user_id)
+        if user in conversation.participants.all():
+            return Response(
+                {'error': 'User is already a participant'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
         conversation.participants.add(user)
-        return Response({'status': 'participant added'})
+        return Response(
+            {'status': 'participant added'}, 
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=True, methods=['post'])
+    def remove_participant(self, request, pk=None):
+        """Remove a participant from the conversation."""
+        conversation = self.get_object()
+        user_id = request.data.get('user_id')
+        
+        if not user_id:
+            return Response(
+                {'error': 'user_id is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        user = get_object_or_404(User, id=user_id)
+        if user not in conversation.participants.all():
+            return Response(
+                {'error': 'User is not a participant'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        if conversation.participants.count() <= 1:
+            return Response(
+                {'error': 'Cannot remove the last participant'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        conversation.participants.remove(user)
+        return Response(
+            {'status': 'participant removed'},
+            status=status.HTTP_200_OK
+        )
 
 class MessageViewSet(viewsets.ModelViewSet):
     """
@@ -81,7 +121,7 @@ class MessageViewSet(viewsets.ModelViewSet):
     Provides CRUD operations for messages within conversations.
     """
     serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated | IsParticipantOfConversation]
+    permission_classes = [permissions.IsAuthenticated, IsParticipantOfConversation]
     filter_backends = [DjangoFilterBackend, filters.OrderingFilter]
     filterset_fields = ['sender', 'is_read']
     ordering_fields = ['sent_at']
@@ -113,4 +153,14 @@ class MessageViewSet(viewsets.ModelViewSet):
         message = self.get_object()
         message.is_read = True
         message.save()
-        return Response({'status': 'message marked as read'})
+        return Response(
+            {'status': 'message marked as read'},
+            status=status.HTTP_200_OK
+        )
+
+    @action(detail=False, methods=['get'])
+    def unread_count(self, request, conversation_pk=None):
+        """Get count of unread messages in conversation."""
+        queryset = self.get_queryset().filter(is_read=False)
+        count = queryset.exclude(sender=request.user).count()
+        return Response({'unread_count': count})
