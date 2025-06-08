@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 
 
-class UserCanReadonly(BasePermission);
+class UserCanReadonly(BasePermission):
     def has_permission(self, request, view):
         return request.has_permission(request, view)
     
