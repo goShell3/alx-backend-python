@@ -100,7 +100,7 @@ class ConversationViewSet(viewsets.ModelViewSet):
         if user not in conversation.participants.all():
             return Response(
                 {'error': 'User is not a participant'},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_403_BAD_REQUEST
             )
             
         if conversation.participants.count() <= 1:
