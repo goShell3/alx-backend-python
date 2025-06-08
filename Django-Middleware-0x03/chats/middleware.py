@@ -57,7 +57,7 @@ class RestrictAccessByTimeMiddleware:
         
         return self.get_response(request)
 
-class RateLimitMiddleware:
+class OffensiveLanguageMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         # Dictionary to store request counts for each IP
@@ -101,4 +101,46 @@ class RateLimitMiddleware:
         self.request_counts[ip_address] = [
             req_time for req_time in self.request_counts[ip_address]
             if (current_time - req_time).total_seconds() <= self.time_window
-        ] 
+        ]
+
+class RolePermissionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Define admin-only paths
+        self.admin_paths = [
+            '/api/admin/',
+            '/api/users/delete/',
+            '/api/messages/delete/',
+            '/api/conversations/delete/'
+        ]
+        # Define moderator-only paths
+        self.moderator_paths = [
+            '/api/messages/moderate/',
+            '/api/users/moderate/'
+        ]
+
+    def __call__(self, request):
+        # Skip check for non-authenticated users (they'll be handled by authentication middleware)
+        if not request.user.is_authenticated:
+            return self.get_response(request)
+
+        # Get the current path
+        current_path = request.path
+
+        # Check if the path requires admin privileges
+        if any(path in current_path for path in self.admin_paths):
+            if not request.user.is_staff:  # Django's built-in admin check
+                return JsonResponse({
+                    'error': 'Permission denied',
+                    'message': 'This action requires administrator privileges.'
+                }, status=403)
+
+        # Check if the path requires moderator privileges
+        if any(path in current_path for path in self.moderator_paths):
+            if not (request.user.is_staff or hasattr(request.user, 'is_moderator')):
+                return JsonResponse({
+                    'error': 'Permission denied',
+                    'message': 'This action requires moderator privileges.'
+                }, status=403)
+
+        return self.get_response(request) 
