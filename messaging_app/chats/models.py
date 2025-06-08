@@ -108,6 +108,7 @@ class Message(models.Model):
         related_name='sent_messages',
         on_delete=models.CASCADE
     )
+    
     message_body = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
