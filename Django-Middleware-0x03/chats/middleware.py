@@ -103,7 +103,7 @@ class OffensiveLanguageMiddleware:
             if (current_time - req_time).total_seconds() <= self.time_window
         ]
 
-class RolePermissionMiddleware:
+class RolepermissionMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
         # Define admin-only paths
