@@ -4,6 +4,14 @@ from django.shortcuts import redirect
 from django.contrib import messages
 from models import Message
 from django.shortcuts import render
+from django.views.decorators.cache import cache_page
+
+
+@login_required
+@cache_page(60)  # cache timeout: 60 seconds
+def conversation_messages(request, conversation_id):
+    messages = Message.objects.filter(conversation_id=conversation_id).select_related('sender').order_by('timestamp')
+    return render(request, 'messaging/conversation_messages.html', {'messages': messages})
 
 @login_required
 def delete_user(request):
@@ -20,6 +28,15 @@ def unread_inbox_view(request):
     return render(request, 'inbox/unread_messages.html', {
         'unread_messages': unread_messages
     })
+
+def build_thread(message):
+    return {
+        'id': message.id,
+        'sender': message.sender.username,
+        'content': message.content,
+        'timestamp': message.timestamp,
+        'replies': [build_thread(reply) for reply in message.replies.all()]
+    }
 
 def conversation_view(request):
     messages = Message.objects.filter(parent_message__isnull=True).select_related(
