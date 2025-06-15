@@ -85,3 +85,6 @@ def user_threaded_messages_view(request):
     # build_thread function omitted for brevity
 
     return render(request, 'messaging/threaded_messages.html', {'messages': top_level_messages})
+
+ ["sender=request.user"]
+["Message.unread.unread_for_user"]
