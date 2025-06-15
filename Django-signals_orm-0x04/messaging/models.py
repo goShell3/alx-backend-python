@@ -123,8 +123,15 @@ class Message(models.Model):
 
 
 class Notification(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    sender = models.ForeignKey(
+        User, 
+        related_name='message_sender',
+        on_delete=models.CASCADE)
+    receiver = models.ForeignKey(
+        User, 
+        related_name='receive_message',
+        on_delete=models.CASCADE)
+    content = models.ForeignKey(Message, on_delete=models.CASCADE)
     is_read = models.BooleanField(default=False)
     timestamp = models.DateTimeField(auto_now_add=True)
 
