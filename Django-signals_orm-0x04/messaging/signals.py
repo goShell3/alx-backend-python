@@ -1,9 +1,9 @@
 from django.apps import AppConfig
 from django.core.signals import setting_changed
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 
-from models import Notification, Message, MessageHistory
+from models import Notification, Message, MessageHistory, User
 
 
 @receiver(post_save, sender=Message)
@@ -31,3 +31,9 @@ def log_content_before_log(sender, instance, updated, **kwargs):
         )
         instance.edited = True
 
+
+@receiver(post_delete, sender=User)
+def cleanup_user_data(sender, instance, **kwargs):
+    # Should be unnecessary if CASCADE is set, but here for safety/logging
+    Message.objects.filter(sender=instance).delete()
+    Notification.objects.filter(user=instance).delete()
