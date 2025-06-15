@@ -89,6 +89,13 @@ class Conversation(models.Model):
         return f"Conversation between: {participant_usernames}"
 
 
+class UnreadMessagesManager(models.Manager):
+    def for_user(self, user):
+        return self.get_queryset().filter(
+            recipient=user,
+            read=False
+        ).only('id', 'sender', 'content', 'timestamp')
+    
 class Message(models.Model):
     """Message sent in a conversation."""
     message_id = models.UUIDField(
@@ -127,6 +134,9 @@ class Message(models.Model):
         blank=True,
         related_name='replies'
     )
+
+    objects = models.Manager()  # Default manager
+    unread = UnreadMessagesManager() 
 
     def __str__(self):
         return f"{self.sender.username}: {self.message_body[:30]}..."
