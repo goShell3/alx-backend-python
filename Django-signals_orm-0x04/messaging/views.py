@@ -21,14 +21,15 @@ def delete_user(request):
     messages.success(request, "Your account and associated data have been deleted.")
     return redirect("home")  # Replace "home" with your landing page
 
+
 @login_required
 def unread_inbox_view(request):
-    unread_messages = Message.unread.for_user(request.user)
+    # Use the custom manager method and optimize with .only()
+    unread_messages = Message.unread.unread_for_user(request.user).only('id', 'sender', 'content', 'timestamp')
 
-    return render(request, 'inbox/unread_messages.html', {
+    return render(request, 'messaging/unread_inbox.html', {
         'unread_messages': unread_messages
     })
-
 def build_thread(message):
     return {
         'id': message.id,
@@ -67,3 +68,20 @@ def message_thread_view(request):
     return render(request, 'messaging/message_threads.html', {
         'messages': messages
     })
+
+@login_required
+def user_threaded_messages_view(request):
+    user = request.user
+
+    # Filter messages where user is sender or recipient
+    top_level_messages = Message.objects.filter(
+        parent_message__isnull=True
+    ).filter(
+        Q(sender=user) | Q(recipient=user)
+    ).select_related('sender').prefetch_related(
+        Prefetch('replies', queryset=Message.objects.select_related('sender'))
+    )
+
+    # build_thread function omitted for brevity
+
+    return render(request, 'messaging/threaded_messages.html', {'messages': top_level_messages})
