@@ -120,6 +120,13 @@ class Message(models.Model):
     message_body = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
+    parent_message = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='replies'
+    )
 
     def __str__(self):
         return f"{self.sender.username}: {self.message_body[:30]}..."
