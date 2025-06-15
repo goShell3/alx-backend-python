@@ -108,6 +108,11 @@ class Message(models.Model):
         related_name='sent_messages',
         on_delete=models.CASCADE
     )
+    receiver = models.ForeignKey(
+        User,
+        related_name='message_receiver',
+        on_delete=models.CASCADE
+    )
     
     message_body = models.TextField()
     sent_at = models.DateTimeField(auto_now_add=True)
@@ -118,12 +123,11 @@ class Message(models.Model):
 
 
 class Notification(models.Model):
-    timestamp = models.TimeField(auto_now=True)
-    sender = models.ForeignKey(User, related_name='sender')
-    receiver = models.ForeignKey(User, related_name='receiver', on_delete=models.CASCADE)
-    content = models.ForeignKey(Message, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.ForeignKey(Message, on_delete=models.CASCADE)
+    is_read = models.BooleanField(default=False)
+    timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.sender.username} : sent {self.content.message_body} : to {self.receiver.username}"
-    
+        return f"{self.user.username} : {self.message.message_body} "
     
