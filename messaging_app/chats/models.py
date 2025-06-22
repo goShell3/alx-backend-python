@@ -1,117 +1,90 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.utils.translation import gettext_lazy as _
+from django.contrib.auth import get_user_model
 import uuid
 
+
 class User(AbstractUser):
-    """Custom user model extending Django's AbstractUser."""
+    """
+    Extended User model with additional fields for messaging functionality.
+    Extends Django's AbstractUser to add custom fields.
+    """
+    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=128)  # Explicitly define password field
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    first_name = models.CharField(max_length=150, blank=False)
+    last_name = models.CharField(max_length=150, blank=False)
+    created_at = models.DateTimeField(auto_now_add=True)
 
-    user_id = models.UUIDField(
-        default=uuid.uuid4,
-        unique=True,
-        editable=False,
-        primary_key=True
-    )
-
-    email = models.EmailField(
-        unique=True,
-        null=False,
-        blank=False,
-        help_text=_('User email address')
-    )
-
-    password = models.CharField(
-        max_length=128,
-        null=False,
-        blank=False,
-        help_text=_('User password')
-    )
-    
-    # profile_picture = models.ImageField(
-    #     upload_to='profile_pictures/',
-    #     null=True,
-    #     blank=True,
-    #     help_text=_('User profile picture')
-    # )
-    bio = models.TextField(
-        max_length=500,
-        blank=True,
-        help_text=_('Short biography about the user')
-    )
-    phone_number = models.CharField(
-        max_length=15,
-        blank=True,
-        help_text=_('User contact number')
-    )
-    is_online = models.BooleanField(
-        default=False,
-        help_text=_('User online status')
-    )
-    last_seen = models.DateTimeField(
-        auto_now=True,
-        help_text=_('Last time user was active')
-    )
-    status = models.CharField(
-        max_length=100,
-        blank=True,
-        help_text=_('User status message')
-    )
+    # Use email as the username field
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
-        verbose_name = _('user')
-        verbose_name_plural = _('users')
+        db_table = 'chats_user'
 
     def __str__(self):
-        return self.username
-
-    def get_full_name(self):
-        return f"{self.first_name} {self.last_name}".strip()
-
-    def get_short_name(self):
-        return self.first_name
+        return f"{self.first_name} {self.last_name} ({self.email})"
 
 
 class Conversation(models.Model):
-    """Conversation between two or more users."""
-    conversation_id = models.UUIDField(
-        default=uuid.uuid4,
-        unique=True,
-        editable=False,
-        primary_key=True
+    """
+    Model to track conversations between users.
+    A conversation can have multiple participants.
+    """
+    conversation_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    participants = models.ManyToManyField(
+        'User',
+        related_name='conversations',
+        help_text="Users participating in this conversation"
     )
-
-    participants = models.ManyToManyField(User, related_name='conversations')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        db_table = 'chats_conversation'
+        ordering = ['-updated_at']
+
     def __str__(self):
-        participant_usernames = ", ".join([user.username for user in self.participants.all()])
-        return f"Conversation between: {participant_usernames}"
+        participant_names = ", ".join([str(user) for user in self.participants.all()[:3]])
+        if self.participants.count() > 3:
+            participant_names += f" and {self.participants.count() - 3} others"
+        return f"Conversation: {participant_names}"
+
+    def get_participant_count(self):
+        """Return the number of participants in the conversation."""
+        return self.participants.count()
 
 
 class Message(models.Model):
-    """Message sent in a conversation."""
-    message_id = models.UUIDField(
-        default=uuid.uuid4,
-        unique=True,
-        editable=False,
-        primary_key=True
-    )
-
-    conversation = models.ForeignKey(
-        Conversation,
-        related_name='messages',
-        on_delete=models.CASCADE
-    )
+    """
+    Model representing individual messages in conversations.
+    Each message belongs to a conversation and has a sender.
+    """
+    message_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     sender = models.ForeignKey(
-        User,
+        'User',
+        on_delete=models.CASCADE,
         related_name='sent_messages',
-        on_delete=models.CASCADE
+        help_text="User who sent this message"
     )
-    
-    message_body = models.TextField()
+    conversation = models.ForeignKey(
+        'Conversation',
+        on_delete=models.CASCADE,
+        related_name='messages',
+        help_text="Conversation this message belongs to"
+    )
+    message_body = models.TextField(help_text="Content of the message")
     sent_at = models.DateTimeField(auto_now_add=True)
-    is_read = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'chats_message'
+        ordering = ['sent_at']
 
     def __str__(self):
-        return f"{self.sender.username}: {self.message_body[:30]}..."
+        return f"Message from {self.sender.first_name} at {self.sent_at.strftime('%Y-%m-%d %H:%M')}"
+
+    def get_sender_name(self):
+        """Return the full name of the message sender."""
+        return f"{self.sender.first_name} {self.sender.last_name}"
