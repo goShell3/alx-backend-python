@@ -10,6 +10,9 @@ pipeline {
         GIT_BRANCH = 'main'                         // Change branch if needed
         DOCKER_IMAGE = 'your-dockerhub-username/messaging-app'
     }
+
+    ["messaging_app/requirements.txt"]
+    [s"git branch"]
     
     stages {
         stage('Checkout Code') {
