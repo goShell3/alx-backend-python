@@ -2,47 +2,42 @@ pipeline {
     agent any
     
     environment {
-        PROJECT = 'messaging_app'
-        GITHUB_CREDENTIALS = 'your-github-credentials-id'
-        DOCKER_HUB_CREDENTIALS = 'your-dockerhub-credentials-id'
+        // Credential IDs configured in Jenkins
+        GITHUB_CREDS = 'your-github-credentials-id'  // Replace with your Jenkins GitHub credentials ID
+        DOCKER_HUB_CREDS = 'your-dockerhub-creds'   // Replace with your Docker Hub credentials ID
+        
+        // Configuration
+        GIT_BRANCH = 'main'                         // Change branch if needed
         DOCKER_IMAGE = 'your-dockerhub-username/messaging-app'
-        DOCKER_TAG = "${env.BUILD_NUMBER}"
     }
     
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/main']],
+                    branches: [[name: "*/${env.GIT_BRANCH}"]],
                     extensions: [],
                     userRemoteConfigs: [[
-                        credentialsId: env.GITHUB_CREDENTIALS,
+                        credentialsId: env.GITHUB_CREDS,
                         url: 'git@github.com:your-username/alx-backend-python.git'
                     ]]
                 ])
-                dir('messaging_app') {
-                    script {
-                        // Store the current directory for later stages
-                        env.PROJECT_DIR = pwd()
-                    }
-                }
             }
         }
         
-        stage('Set up Python') {
+        stage('Install Dependencies') {
             steps {
-                dir(env.PROJECT_DIR) {
-                    sh 'python -m pip install --upgrade pip'
-                    sh 'pip install -r requirements.txt'
+                dir('messaging_app') {
+                    sh 'pip3 install -r requirements.txt'
                 }
             }
         }
         
         stage('Run Tests') {
             steps {
-                dir(env.PROJECT_DIR) {
-                    sh 'pytest --junitxml=test-results.xml || true'
+                dir('messaging_app') {
+                    sh 'python -m pytest --junitxml=test-results.xml --cov=. --cov-report html:htmlcov || true'
                 }
             }
             post {
@@ -62,9 +57,9 @@ pipeline {
         
         stage('Build Docker Image') {
             steps {
-                dir(env.PROJECT_DIR) {
+                dir('messaging_app') {
                     script {
-                        docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                        docker.build("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}")
                     }
                 }
             }
@@ -73,10 +68,8 @@ pipeline {
         stage('Push to Docker Hub') {
             steps {
                 script {
-                    docker.withRegistry('https://registry.hub.docker.com', env.DOCKER_HUB_CREDENTIALS) {
-                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
-                        // Also push as latest
-                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push('latest')
+                    docker.withRegistry('https://registry.hub.docker.com', env.DOCKER_HUB_CREDS) {
+                        docker.image("${env.DOCKER_IMAGE}:${env.BUILD_NUMBER}").push()
                     }
                 }
             }
@@ -86,7 +79,7 @@ pipeline {
     post {
         always {
             script {
-                // Clean up Docker images to save space
+                // Clean up Docker images
                 sh 'docker system prune -f'
             }
         }
