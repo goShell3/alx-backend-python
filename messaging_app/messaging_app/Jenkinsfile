@@ -2,70 +2,45 @@ pipeline {
     agent any
     
     environment {
-        PROJECT = 'messaging_app'
-        GITHUB_CREDENTIALS = 'your-github-credentials-id'
-        DOCKER_HUB_CREDENTIALS = 'your-dockerhub-credentials-id'
+        DOCKER_HUB_CREDENTIALS = 'docker-hub-creds'  // Your Docker Hub credentials ID in Jenkins
         DOCKER_IMAGE = 'your-dockerhub-username/messaging-app'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
     }
     
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 checkout([
                     $class: 'GitSCM',
-                    branches: [[name: '*/main']],
+                    branches: [[name: '*/main']],  // Change branch name if needed
                     extensions: [],
                     userRemoteConfigs: [[
-                        credentialsId: env.GITHUB_CREDENTIALS,
-                        url: 'git@github.com:your-username/alx-backend-python.git'
+                        url: 'https://github.com/your-username/alx-backend-python.git'
                     ]]
                 ])
-                dir('messaging_app') {
-                    script {
-                        // Store the current directory for later stages
-                        env.PROJECT_DIR = pwd()
-                    }
-                }
             }
         }
         
-        stage('Set up Python') {
+        stage('Build Docker Image') {
             steps {
-                dir(env.PROJECT_DIR) {
-                    sh 'python -m pip install --upgrade pip'
-                    sh 'pip install -r requirements.txt'
+                dir('messaging_app') {
+                    script {
+                        docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    }
                 }
             }
         }
         
         stage('Run Tests') {
             steps {
-                dir(env.PROJECT_DIR) {
+                dir('messaging_app') {
+                    sh 'python -m pip install -r requirements.txt'
                     sh 'pytest --junitxml=test-results.xml || true'
                 }
             }
             post {
                 always {
                     junit 'messaging_app/test-results.xml'
-                    publishHTML(target: [
-                        allowMissing: false,
-                        alwaysLinkToLastBuild: false,
-                        keepAll: true,
-                        reportDir: 'messaging_app/htmlcov',
-                        reportFiles: 'index.html',
-                        reportName: 'Pytest Coverage Report'
-                    ])
-                }
-            }
-        }
-        
-        stage('Build Docker Image') {
-            steps {
-                dir(env.PROJECT_DIR) {
-                    script {
-                        docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
-                    }
                 }
             }
         }
@@ -75,8 +50,6 @@ pipeline {
                 script {
                     docker.withRegistry('https://registry.hub.docker.com', env.DOCKER_HUB_CREDENTIALS) {
                         docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
-                        // Also push as latest
-                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push('latest')
                     }
                 }
             }
@@ -86,7 +59,7 @@ pipeline {
     post {
         always {
             script {
-                // Clean up Docker images to save space
+                // Clean up Docker images
                 sh 'docker system prune -f'
             }
         }
