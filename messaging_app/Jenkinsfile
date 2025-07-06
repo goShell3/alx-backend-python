@@ -2,8 +2,11 @@ pipeline {
     agent any
     
     environment {
-        PROJECT = 'your-repo-name'
+        PROJECT = 'messaging_app'
         GITHUB_CREDENTIALS = 'your-github-credentials-id'
+        DOCKER_HUB_CREDENTIALS = 'your-dockerhub-credentials-id'
+        DOCKER_IMAGE = 'your-dockerhub-username/messaging-app'
+        DOCKER_TAG = "${env.BUILD_NUMBER}"
     }
     
     stages {
@@ -15,35 +18,76 @@ pipeline {
                     extensions: [],
                     userRemoteConfigs: [[
                         credentialsId: env.GITHUB_CREDENTIALS,
-                        url: 'git@github.com:your-username/your-repo.git'
+                        url: 'git@github.com:your-username/alx-backend-python.git'
                     ]]
                 ])
+                dir('messaging_app') {
+                    script {
+                        // Store the current directory for later stages
+                        env.PROJECT_DIR = pwd()
+                    }
+                }
             }
         }
         
         stage('Set up Python') {
             steps {
-                sh 'python -m pip install --upgrade pip'
-                sh 'pip install -r requirements.txt'
+                dir(env.PROJECT_DIR) {
+                    sh 'python -m pip install --upgrade pip'
+                    sh 'pip install -r requirements.txt'
+                }
             }
         }
         
         stage('Run Tests') {
             steps {
-                sh 'pytest --junitxml=test-results.xml || true'
+                dir(env.PROJECT_DIR) {
+                    sh 'pytest --junitxml=test-results.xml || true'
+                }
             }
             post {
                 always {
-                    junit 'test-results.xml'
+                    junit 'messaging_app/test-results.xml'
                     publishHTML(target: [
                         allowMissing: false,
                         alwaysLinkToLastBuild: false,
                         keepAll: true,
-                        reportDir: 'htmlcov',
+                        reportDir: 'messaging_app/htmlcov',
                         reportFiles: 'index.html',
                         reportName: 'Pytest Coverage Report'
                     ])
                 }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir(env.PROJECT_DIR) {
+                    script {
+                        docker.build("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}")
+                    }
+                }
+            }
+        }
+        
+        stage('Push to Docker Hub') {
+            steps {
+                script {
+                    docker.withRegistry('https://registry.hub.docker.com', env.DOCKER_HUB_CREDENTIALS) {
+                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push()
+                        // Also push as latest
+                        docker.image("${env.DOCKER_IMAGE}:${env.DOCKER_TAG}").push('latest')
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            script {
+                // Clean up Docker images to save space
+                sh 'docker system prune -f'
             }
         }
     }
