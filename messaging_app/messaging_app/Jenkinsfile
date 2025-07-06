@@ -12,6 +12,10 @@ pipeline {
     }
     
     stages {
+
+        ["messaging_app/requirements.txt"]
+        ["git branch"]
+
         stage('Checkout Code') {
             steps {
                 checkout([
